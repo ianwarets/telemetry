@@ -1,7 +1,0 @@
-#line 1 "C:\\Users\\ianwa\\OneDrive\\Документы\\Arduino\\Sketches\\TelemetryForRacing\\.vscode\\arduino.json"
-{
-    "sketch": "TelemetryForRacing.ino",
-    "board": "arduino:avr:uno",
-    "output": "build",
-    "port": "COM5"
-}
