@@ -9,7 +9,9 @@ void saveRecordToMemory(unsigned int);
 volatile unsigned long timerTime = 0, prevInterruptTime = 0;
 volatile bool isRunning = false;
 unsigned int minutes, seconds, milliseconds;
+#ifdef DEBUG
 volatile unsigned int interruptCounter = 0;
+#endif
 
 LCDI2C_Russian  lcd(0x27, 16, 2);
 
@@ -27,53 +29,56 @@ void loop(){
     #ifdef DEBUG
     lcd.print(interruptCounter);
     #endif
+    static bool resultPrinted = true;
     if(isRunning){
         unsigned long currentTime = millis() - timerTime;
         lcd.print("Timer started!");
         printTime(currentTime);
+        resultPrinted = false;
     }else{
-        static int prevInterruptCounter;
-        if(prevInterruptCounter < interruptCounter){
+        if(!resultPrinted){
             saveRecordToMemory(timerTime);
-        }
-        if(prevInterruptTime + 3000 < millis()){
-            lcd.setCursor(0, 0);
-            lcd.print("Wait 3 sec.");
+            delay(1000);
+            lcd.clear();
+            resultPrinted = true;
         }else{
-            lcd.print("Get ready!");
+            if(prevInterruptTime + 3000 > millis()){
+                lcd.print("Wait 3 sec.");
+            }else{
+                lcd.print("Get ready! ");
+            }
         }
         printTime(timerTime);
     }
 }
 
 void isrSaveTime(){
-    interruptCounter++;
-    unsigned int now = millis();
-
-    if(prevInterruptTime + 3000 < now || prevInterruptTime == 0){
+    unsigned long now = millis();
+    if(prevInterruptTime + 3000 < now){
         if(isRunning){
             timerTime = now - timerTime;
         }else{
             timerTime = now;
         }
         isRunning = !isRunning;
+        prevInterruptTime = now;
     }
-    prevInterruptTime = now;
+    #ifdef DEBUG
+    interruptCounter++;
+    #endif
 }
 
 void saveRecordToMemory(unsigned int timeToSave){
-    lcd.setCursor(0,0);
     lcd.print("Time recorded.");
-    return;
 }
 
-void printTime(unsigned int time){
+void printTime(unsigned long time){
     char timeString[10]; 
-    unsigned short minutes = (time/1000)/60;
-    unsigned short seconds = (time/1000)%60;
-    unsigned short milliseconds = time%1000;
+    unsigned int secondsAll = time/1000;
+    unsigned int minutes = secondsAll/60;
+    unsigned int seconds = secondsAll%60;
+    unsigned int milliseconds = time%1000;
     sprintf(timeString, "%02d:%02d:%03d\0", minutes, seconds, milliseconds);
-    lcd.setCursor(0, 1);
-    lcd.print("time:");
+    lcd.setCursor(4, 1);
     lcd.print(timeString);
 }
