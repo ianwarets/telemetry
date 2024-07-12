@@ -6,9 +6,10 @@ uint8_t sensorPin = 3;
 unsigned long timerDelay = 1500;
 void isrSaveTime();
 void saveRecordToMemory(unsigned int);
-volatile unsigned long timerTime = 0, prevInterruptTime = 0;
-volatile bool isRunning = false;
+void printTime(unsigned long, short, short);
+volatile unsigned long timerTime = 0, prevTime = 0;
 unsigned int minutes, seconds, milliseconds;
+volatile bool interrupt = false;
 #ifdef DEBUG
 volatile unsigned int interruptCounter = 0;
 #endif
@@ -29,39 +30,23 @@ void loop(){
     #ifdef DEBUG
     lcd.print(interruptCounter);
     #endif
-    static bool resultPrinted = true;
-    if(isRunning){
-        lcd.print("Timer started!");
-        printTime(millis() - timerTime);
-        resultPrinted = false;
-    }else{
-        if(!resultPrinted){
-            lcd.clear();
-            saveRecordToMemory(timerTime);
-            delay(1000);
-            lcd.clear();
-            resultPrinted = true;
-        }
 
-        if(prevInterruptTime + timerDelay > millis()){
-            lcd.print("Wait 3 sec.");
-        }else{
-            lcd.print("Get ready! ");
-        }
-        printTime(timerTime);
+    lcd.print("Now: ");
+    printTime(millis() - timerTime, 6, 0);
+    if(interrupt){
+        lcd.setCursor(0, 1);
+        lcd.print("Prev: ");
+        printTime(timerTime - prevTime, 6, 1);
+        interrupt = false;
     }
 }
 
 void isrSaveTime(){
     unsigned long now = millis();
-    if(prevInterruptTime + timerDelay < now){
-        if(isRunning){
-            timerTime = now - timerTime;
-        }else{
-            timerTime = now;
-        }
-        prevInterruptTime = now;
-        isRunning = !isRunning;
+    if(timerTime + timerDelay < now){
+        prevTime = timerTime;
+        timerTime = now;
+        interrupt = true;
     }
     #ifdef DEBUG
     interruptCounter++;
@@ -69,16 +54,15 @@ void isrSaveTime(){
 }
 
 void saveRecordToMemory(unsigned int timeToSave){
-    lcd.print("Time recorded.");
 }
 
-void printTime(unsigned long time){
+void printTime(unsigned long time, short col, short row){
     char timeString[10]; 
     unsigned int secondsAll = time/1000;
     unsigned int minutes = secondsAll/60;
     unsigned int seconds = secondsAll%60;
     unsigned int milliseconds = time%1000;
     sprintf(timeString, "%02d:%02d:%03d\0", minutes, seconds, milliseconds);
-    lcd.setCursor(4, 1);
+    lcd.setCursor(col, row);
     lcd.print(timeString);
 }
