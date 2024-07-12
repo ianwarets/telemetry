@@ -1,9 +1,9 @@
-#include <EEPROM.h>
 #include <Wire.h>
-//#include <LiquidCrystal_I2C.h>
-#include <LCDI2C_Multilingual.h>
+#include <LiquidCrystal_I2C.h>
+//#include <LCDI2C_Multilingual.h>
 
-uint8_t sensorPin = 2;
+uint8_t sensorPin = 3;
+unsigned long timerDelay = 1500;
 void isrSaveTime();
 void saveRecordToMemory(unsigned int);
 volatile unsigned long timerTime = 0, prevInterruptTime = 0;
@@ -13,7 +13,7 @@ unsigned int minutes, seconds, milliseconds;
 volatile unsigned int interruptCounter = 0;
 #endif
 
-LCDI2C_Russian  lcd(0x27, 16, 2);
+LiquidCrystal_I2C  lcd(0x27, 16, 2);
 
 void setup(){
     lcd.init();
@@ -31,22 +31,22 @@ void loop(){
     #endif
     static bool resultPrinted = true;
     if(isRunning){
-        unsigned long currentTime = millis() - timerTime;
         lcd.print("Timer started!");
-        printTime(currentTime);
+        printTime(millis() - timerTime);
         resultPrinted = false;
     }else{
         if(!resultPrinted){
+            lcd.clear();
             saveRecordToMemory(timerTime);
             delay(1000);
             lcd.clear();
             resultPrinted = true;
+        }
+
+        if(prevInterruptTime + timerDelay > millis()){
+            lcd.print("Wait 3 sec.");
         }else{
-            if(prevInterruptTime + 3000 > millis()){
-                lcd.print("Wait 3 sec.");
-            }else{
-                lcd.print("Get ready! ");
-            }
+            lcd.print("Get ready! ");
         }
         printTime(timerTime);
     }
@@ -54,14 +54,14 @@ void loop(){
 
 void isrSaveTime(){
     unsigned long now = millis();
-    if(prevInterruptTime + 3000 < now){
+    if(prevInterruptTime + timerDelay < now){
         if(isRunning){
             timerTime = now - timerTime;
         }else{
             timerTime = now;
         }
-        isRunning = !isRunning;
         prevInterruptTime = now;
+        isRunning = !isRunning;
     }
     #ifdef DEBUG
     interruptCounter++;
