@@ -1,42 +1,36 @@
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-//#include <LCDI2C_Multilingual.h>
+#include <nRF24L01.h>
+#include <printf.h>
+#include <RF24_config.h>
+#include <RF24.h>
 
-uint8_t sensorPin = 3;
+#define SENSORPIN 3
+#define RF24CEPIN 4
+#define RF24CSNPIN 5
 unsigned long timerDelay = 1500;
 void isrSaveTime();
-void saveRecordToMemory(unsigned int);
-void printTime(unsigned long, short, short);
 volatile unsigned long timerTime = 0, prevTime = 0;
 unsigned int minutes, seconds, milliseconds;
 volatile bool interrupt = false;
-#ifdef DEBUG
-volatile unsigned int interruptCounter = 0;
-#endif
-
-LiquidCrystal_I2C  lcd(0x27, 16, 2);
+RF24 radio(RF24CEPIN, RF24CSNPIN);
 
 void setup(){
-    lcd.init();
-    lcd.backlight();
-    lcd.clear();
-    // Init I/O pins
-    pinMode(sensorPin, INPUT);
-    attachInterrupt(digitalPinToInterrupt(sensorPin), isrSaveTime, FALLING);
+    radio.begin();
+    radio.setChannel(5);
+    radio.setDataRate(RF24_250KBPS);
+    radio.setPALevel(RF24_PA_LOW);
+    /*
+        Уникальный идентификатор канала передачи
+    */
+    radio.openWritingPipe(0x7878787878LL);
+
+    pinMode(SENSORPIN, INPUT);
+    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, FALLING);
+
 }
 
 void loop(){
-    lcd.setCursor(0, 0);
-    #ifdef DEBUG
-    lcd.print(interruptCounter);
-    #endif
-
-    lcd.print("Now: ");
-    printTime(millis() - timerTime, 6, 0);
     if(interrupt){
-        lcd.setCursor(0, 1);
-        lcd.print("Prev: ");
-        printTime(timerTime - prevTime, 6, 1);
+        radio.write(timerTime - prevTime, 1);
         interrupt = false;
     }
 }
@@ -48,21 +42,4 @@ void isrSaveTime(){
         timerTime = now;
         interrupt = true;
     }
-    #ifdef DEBUG
-    interruptCounter++;
-    #endif
-}
-
-void saveRecordToMemory(unsigned int timeToSave){
-}
-
-void printTime(unsigned long time, short col, short row){
-    char timeString[10]; 
-    unsigned int secondsAll = time/1000;
-    unsigned int minutes = secondsAll/60;
-    unsigned int seconds = secondsAll%60;
-    unsigned int milliseconds = time%1000;
-    sprintf(timeString, "%02d:%02d:%03d\0", minutes, seconds, milliseconds);
-    lcd.setCursor(col, row);
-    lcd.print(timeString);
 }
