@@ -17,8 +17,6 @@
             "includePath": [
                 "C:\\Users\\ianwa\\AppData\\Local\\Arduino15\\packages\\ATTinyCore\\hardware\\avr\\1.5.2\\cores\\tiny",
                 "C:\\Users\\ianwa\\AppData\\Local\\Arduino15\\packages\\ATTinyCore\\hardware\\avr\\1.5.2\\variants\\tinyX8_MH",
-                "C:\\Users\\ianwa\\AppData\\Local\\Arduino15\\packages\\ATTinyCore\\hardware\\avr\\1.5.2\\libraries\\Wire\\src",
-                "C:\\Users\\ianwa\\OneDrive\\Документы\\Arduino\\libraries\\LiquidCrystal_I2C",
                 "C:\\Users\\ianwa\\OneDrive\\Документы\\Arduino\\libraries\\RF24",
                 "C:\\Users\\ianwa\\AppData\\Local\\Arduino15\\packages\\ATTinyCore\\hardware\\avr\\1.5.2\\libraries\\SPI",
                 "c:\\users\\ianwa\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\lib\\gcc\\avr\\7.3.0\\include",

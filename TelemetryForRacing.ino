@@ -30,7 +30,8 @@ void setup(){
 
 void loop(){
     if(interrupt){
-        radio.write(timerTime - prevTime, 1);
+        unsigned long result = timerTime -prevTime;
+        radio.write(&result, sizeof(result));
         interrupt = false;
     }
 }
