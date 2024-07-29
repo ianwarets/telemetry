@@ -30,7 +30,7 @@ void setup(){
 
 void loop(){
     if(interrupt){
-        unsigned long result = timerTime -prevTime;
+        unsigned long result = timerTime - prevTime;
         radio.write(&result, sizeof(result));
         interrupt = false;
     }
@@ -38,6 +38,8 @@ void loop(){
 
 void isrSaveTime(){
     unsigned long now = millis();
+    timerTime = now;
+    interrupt = true;
     if(timerTime + timerDelay < now){
         prevTime = timerTime;
         timerTime = now;
