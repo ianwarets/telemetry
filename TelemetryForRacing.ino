@@ -38,8 +38,6 @@ void loop(){
 
 void isrSaveTime(){
     unsigned long now = millis();
-    timerTime = now;
-    interrupt = true;
     if(timerTime + timerDelay < now){
         prevTime = timerTime;
         timerTime = now;
