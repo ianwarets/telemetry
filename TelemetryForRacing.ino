@@ -24,7 +24,7 @@ void setup(){
     radio.openWritingPipe(0x7878787878LL);
 
     pinMode(SENSORPIN, INPUT);
-    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, RISING);
 
 }
 
