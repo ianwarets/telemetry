@@ -1,8 +1,8 @@
 {
     "sketch": "TelemetryForRacing.ino",
-    "board": "ATTinyCore:avr:attinyx8micr",
+    "board": "arduino:avr:pro",
     "output": "build",
-    "port": "COM5",
-    "configuration": "LTO=enable,sketchclock=16external,pinmapping=mhtiny,bod=4v3,resetpin=reset,burnmode=upgrade,bootentry=always,millis=enabled,neopixelport=porta",
+    "port": "COM6",
+    "configuration": "cpu=16MHzatmega328",
     "programmer": "usbasp"
 }
