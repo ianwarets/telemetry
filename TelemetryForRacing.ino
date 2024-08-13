@@ -5,9 +5,9 @@
 #define COLOR_ORDER RGB
 #define CHIPSET     WS2812B
  
-#define BRIGHTNESS 64
+#define BRIGHTNESS 255
 
-#define SENSORPIN 4
+#define SENSORPIN 3
 unsigned long timerDelay = 1500;
 void isrSaveTime();
 void printTime(unsigned long);
@@ -79,9 +79,9 @@ void printTime(unsigned long time){
     int ms1Digit = milliseconds/100;
     int ms2Digit = (milliseconds%100)/10;
     int ms3Digit = milliseconds%10;
-    drawDigit5x7(minutes, 0, 0, CRGB::Yellow);
+    drawDigit5x7(minutes, 0, 0, CRGB::Green);
     drawPixelXY(5, 0, CRGB::Cyan); 
-    drawDigit5x7(sec1Digit, 6, 1, CRGB::Blue);
+    drawDigit5x7(sec1Digit, 6, 1, CRGB::Red);
     drawDigit5x7(sec2Digit, 11, 0, CRGB::Green);
     drawPixelXY(16, 0, CRGB::Cyan);
     drawDigit5x7(ms1Digit, 17, 1, CRGB::Red);
