@@ -1,5 +1,5 @@
 {
-    "sketch": "TelemetryForRacing.ino",
+    "sketch": "TelemetrySensor.ino",
     "board": "ATTinyCore:avr:attinyx8micr",
     "output": "build",
     "port": "COM5",

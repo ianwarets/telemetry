@@ -1,0 +1,8 @@
+{
+    "sketch": "TelemetryDisplay.ino",
+    "board": "ATTinyCore:avr:attinyx8micr",
+    "output": "build",
+    "port": "COM3",
+    "programmer": "usbasp",
+    "configuration": "LTO=enable,sketchclock=16external,pinmapping=mhtiny,bod=4v3,resetpin=reset,burnmode=upgrade,bootentry=always,millis=enabled,neopixelport=porta"
+}
