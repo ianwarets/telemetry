@@ -15,9 +15,9 @@ RF24 radio(RF24CEPIN, RF24CSNPIN);
 
 void setup(){
     radio.begin();
-    radio.setChannel(5);
+    radio.setChannel(120);
     radio.setDataRate(RF24_250KBPS);
-    radio.setPALevel(RF24_PA_LOW);
+    radio.setPALevel(RF24_PA_HIGH);
     /*
         Уникальный идентификатор канала передачи
     */

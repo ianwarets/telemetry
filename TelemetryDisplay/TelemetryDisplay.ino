@@ -48,7 +48,7 @@ void setup(){
     timeToDisplay(0);
     delay(1000);
     radio.begin();
-    radio.setChannel(5);
+    radio.setChannel(120);
     radio.setDataRate(RF24_250KBPS);
     radio.setPALevel(RF24_PA_LOW);
     /*
