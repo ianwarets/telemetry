@@ -1,37 +1,34 @@
-#include <nRF24L01.h>
 #include <printf.h>
-#include <RF24_config.h>
-#include <RF24.h>
+#include <VirtualWire.h>
 
-#define SENSORPIN 3
-#define RF24CEPIN 4
-#define RF24CSNPIN 5
+#define SENSORPIN 2
+#define TX_PIN 8
 unsigned long timerDelay = 1500;
 void isrSaveTime();
 volatile unsigned long timerTime = 0, prevTime = 0;
-unsigned int minutes, seconds, milliseconds;
 volatile bool interrupt = false;
-RF24 radio(RF24CEPIN, RF24CSNPIN);
 
 void setup(){
-    radio.begin();
-    radio.setChannel(120);
-    radio.setDataRate(RF24_250KBPS);
-    radio.setPALevel(RF24_PA_HIGH);
-    /*
-        Уникальный идентификатор канала передачи
-    */
-    radio.openWritingPipe(0x7878787878LL);
-
+    vw_set_tx_pin(TX_PIN);
+    vw_setup(1200);    
     pinMode(SENSORPIN, INPUT);
     attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, RISING);
-
+    char * msg = "SEM71111";
+    vw_send((uint8_t *)msg, strlen(msg));
+    vw_wait_tx();
+    delay(1000);
+    msg = "SEM000000";
+    vw_send((uint8_t *)msg, strlen(msg));
+    vw_wait_tx();
 }
 
 void loop(){
     if(interrupt){
         unsigned long result = timerTime - prevTime;
-        radio.write(&result, sizeof(result));
+        char msg[30];
+        sprintf(msg, "SEM%lu", result);
+        vw_send((uint8_t *)msg, sizeof(msg));
+        vw_wait_tx();
         interrupt = false;
     }
 }
