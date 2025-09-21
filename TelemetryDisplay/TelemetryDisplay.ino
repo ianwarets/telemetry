@@ -1,4 +1,3 @@
-#include <printf.h>
 #include <VirtualWire.h>
 
 #define DATA_PIN 6
@@ -7,6 +6,12 @@
 #define DIGITS_COUNT 10
 #define DISPLAY_SIZE 6
 #define RX_PIN 3
+#define SENSORPIN 2
+unsigned long timerDelay = 1500;
+void isrSaveTime();
+volatile unsigned long timerTime = 0, prevTime = 0;
+volatile bool interrupt = false;
+bool even = false;
 
 byte digits[DIGITS_COUNT] = {
     // A - 8, G - 2, H - 1
@@ -28,19 +33,31 @@ void setup(){
     pinMode(DATA_PIN, OUTPUT);
     pinMode(CLOCK_PIN, OUTPUT);
     pinMode(LATCH_PIN, OUTPUT);
+    pinMode(SENSORPIN, INPUT);
     vw_rx_start();
     timeToDisplay(0);
+    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, RISING);
 }
 
 void loop(){
     uint8_t buf[VW_MAX_MESSAGE_LEN];
     uint8_t buflen = VW_MAX_MESSAGE_LEN;
+    static unsigned long result;
     if(vw_get_message(buf, &buflen)){
         if((buf[0] == 'S') && (buf[1] == 'E') && (buf[2] == 'M')){
-            unsigned long time = strtoul((char*)&buf[3], NULL, 10);
-            timeToDisplay(time);
+            prevTime = millis();   
+            result = strtoul((char*)&buf[3], NULL, 10);
+            even = !even;
         }
     }
+    // if(interrupt){
+    //     result = timerTime - prevTime;
+    //     interrupt = false;
+    // }
+    if(even){
+        result = millis() - prevTime;
+    }
+    timeToDisplay(result);
 }
 
 void timeToDisplay(unsigned long time){
@@ -83,4 +100,14 @@ inline void PBdigWH(byte b){
 
 inline void PBdigWL(byte b){
     digitalWrite(b, 0);
+}
+
+void isrSaveTime(){
+    unsigned long now = millis();
+    if(timerTime + timerDelay < now){
+        prevTime = timerTime;
+        timerTime = now;
+        interrupt = true;
+        even = !even;
+    }
 }
