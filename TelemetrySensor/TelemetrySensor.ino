@@ -2,6 +2,7 @@
 #include <VirtualWire.h>
 
 #define SENSORPIN 2
+#define LASERINDICATOR 6
 #define TX_PIN 8
 unsigned long timerDelay = 1500;
 void isrSaveTime();
@@ -31,6 +32,7 @@ void loop(){
         vw_wait_tx();
         interrupt = false;
     }
+    digitalWrite(LASERINDICATOR, digitalRead(SENSORPIN));
 }
 
 void isrSaveTime(){
