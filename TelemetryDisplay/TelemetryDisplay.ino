@@ -36,7 +36,7 @@ void setup(){
     pinMode(SENSORPIN, INPUT);
     vw_rx_start();
     timeToDisplay(0);
-    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, RISING);
+    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, FALLING);
 }
 
 void loop(){
