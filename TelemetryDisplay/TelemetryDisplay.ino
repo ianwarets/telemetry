@@ -8,18 +8,20 @@
 #define RX_PIN 3
 #define SENSORPIN 2
 unsigned long timerDelay = 1500;
-unsigned long showDelay = 1000;
+unsigned long showDelay = 700;
 void isrSaveTime();
-volatile unsigned long secondTime = 0, firstTime = 0;
-volatile bool interrupt = false;
-bool even = false;
+volatile unsigned long secondTime = 0;
+volatile unsigned long firstTime = 0;
+volatile bool evenIrq = false;
 int sensorCode = 731;
 uint32_t msgCounter = 0;
 bool radioEnabled = false;
 bool sensorIrqEnabled = false;
 // Значение для обозначения получения инициализирующего пакета от передатчика. Значение болше 10 минут в мс.
-const unsigned long initialized = 1;
-const unsigned long ready = 2;
+// 9 мин 59с 999 мс = 60000*9=540000 + 59999 = 599999
+const unsigned long initialized = 700002;
+const unsigned long ready = 700001;
+const unsigned long noSignal = 700000;
 
 struct message {
     int code;
@@ -31,18 +33,22 @@ void setup(){
     pinMode(DATA_PIN, OUTPUT);
     pinMode(CLOCK_PIN, OUTPUT);
     pinMode(LATCH_PIN, OUTPUT);
-    pinMode(SENSORPIN, INPUT);
+    pinMode(SENSORPIN, INPUT_PULLUP);
     
     // Проверка подключения датчика. Погда датчик подключен, 
     // то при отсутствии лазера на входе датчика на выходе будет 1.
     // Если датчик подключен, включаем прерывания. Если нет, включаем радиоканал.
     if(digitalRead(SENSORPIN) == 1){
-        enableSensorIrq();
+        //enableSensorIrq();
+        showWiredEnabled();
+        delay(1000);
     }else{
         vw_set_rx_pin(RX_PIN);
         vw_setup(1200);
         vw_rx_start();
         radioEnabled = true;
+        showRadioEnabled();
+        delay(1000);
     }
 }
 
@@ -54,24 +60,26 @@ void loop(){
         result = wiredChannel();
     }
     switch (result){
-        case 0:
+        case noSignal:
             showNoSignal();
+            delay(showDelay);
             break;
         case initialized:
             showInitialized();
+            delay(showDelay);
             break;
         case ready:
             showReady();
+            delay(showDelay);
             break;
         default:
             timeToDisplay(result);
     }
-    delay(showDelay);
 }
 unsigned long radioChannel(){
     message msg;
     uint8_t buflen = sizeof(msg);
-    unsigned long result;
+    unsigned long result = 0;
     static bool radioInitialized = false;
     static unsigned long localFirstTime = 0;
     if(vw_get_message((uint8_t*)&msg, &buflen)){
@@ -83,51 +91,83 @@ unsigned long radioChannel(){
                 return initialized;
             }else{
                 if(msg.msgCounter == msgCounter + 1){
-                    if(even){
+                    if(evenIrq){
                         result = firstTime - msg.time;
 
                     }else{
                         firstTime = msg.time;
                         localFirstTime = millis();
                     }
-                    even = !even;
+                    evenIrq = !evenIrq;
                     msgCounter = msg.msgCounter;
                 }
             }
         }
     }
-    if(even){
-        return result;
-    }else{
-        return millis() - localFirstTime;
+    if(radioInitialized == true){
+        if(evenIrq){
+            return result;
+        }else{
+            return millis() - localFirstTime;
+        }
     }
 }
 unsigned long wiredChannel(){
     unsigned long result = 0;
+    static unsigned long lastNoSignal = 0;
     // No signal from sensor. Signal = 0. No signal = 1;
-    if(digitalRead(SENSORPIN) == 1){
+    int signal = !digitalRead(SENSORPIN);
+    if(!signal && lastNoSignal == 0){
+        lastNoSignal = millis();
+    }
+    if(signal){
+        lastNoSignal = 0;
+    }
+    if((!signal&& lastNoSignal + timerDelay < millis())){
+// При отсутствии сигнала в течение 1.5 секунд включаем возвращаем noSignal
         disableSensorIrq();
+        sensorIrqEnabled = false;
+        result = noSignal;
     }else{
         if(!sensorIrqEnabled){
+            secondTime = 0;
+            firstTime = 0;
+            evenIrq = false;
+            delay(1000);
             enableSensorIrq();
+            sensorIrqEnabled = true;
+            result = ready;
         }else{
-            if(interrupt){
-                result = millis() - secondTime;
-                interrupt = false;
-            }
-            if(even){
-                result = secondTime - firstTime;
+            if(firstTime == 0){
+                result = ready;
+            }else{
+                if(evenIrq){
+                    result = millis() - firstTime;
+                    if(result > 599999){
+                        firstTime = millis();
+                        result = 0;
+                    }
+                }else{
+                    result = secondTime - firstTime;
+                }
             }
         }
     }
     return result;
 }
+void showRadioEnabled(){
+    byte radio = 0b01100111; //Р
+    byte arr[DISPLAY_SIZE] = {0,0,0,0,0,radio};
+    writeDataToDisplay(arr);
+}
+void showWiredEnabled(){
+    byte wired = 0b01110110; // П
+    byte arr[DISPLAY_SIZE] = {0,0,0,0,0,wired};
+    writeDataToDisplay(arr);
+}
 void showReady(){
-    byte data[2] = {
-        0b00000000,
-        0b11111110
-    };
-    byte arr[DISPLAY_SIZE] = {data[0], data[0], data[0], data[0], data[0], data[1]};
+    byte zero = 0b01111110;
+    byte arr[DISPLAY_SIZE] = {zero, 0, 0, 0, 0, 0};
     writeDataToDisplay(arr);
 }
 void showInitialized(){
@@ -136,13 +176,28 @@ void showInitialized(){
     writeDataToDisplay(data);
 }
 void showNoSignal(){
-    byte minus = 0b00000001;
-    byte data[DISPLAY_SIZE] = {minus, minus, minus, minus, minus, minus};
+    static short minus_position = 1;
+    static bool up = true;
+    byte minus = 0b00000001; //-
+    byte data[DISPLAY_SIZE] = {0,0,0,0,0,0};
+    data[minus_position] = minus;
+    if(minus_position == 5){
+        up = false;
+    }
+    if(minus_position == 0){
+        up = true;
+    }
+    if(up){
+        
+        minus_position++;
+    }else{
+        minus_position--;
+    }
     writeDataToDisplay(data);
 }
 void timeToDisplay(unsigned long time){
     const byte digits[DIGITS_COUNT] = {
-        // A - 8, G - 2, H - 1
+        // A - 2, G - 8, H - 1
         0b11111110, //0
         0b10110000, //1
         0b11101101, //2
@@ -158,12 +213,19 @@ void timeToDisplay(unsigned long time){
     int minutes = (secondsAll/60)%10;
     int seconds = secondsAll%60;
     int milliseconds = time%1000;
-    int sec1Digit = seconds/10;
-    int sec2dDigit = seconds%10;
-    int ms1Digit = milliseconds/100;
-    int ms2Digit = (milliseconds%100)/10;
-    int ms3Digit = milliseconds%10;
-    byte record[DISPLAY_SIZE] = {digits[ms3Digit], digits[ms2Digit], digits[ms1Digit], digits[sec2dDigit], digits[sec1Digit], digits[minutes]};
+    int sec_dozens = seconds/10;
+    int sec_units = seconds%10;
+    int ms_hundreds = milliseconds/100;
+    int ms_dozens = (milliseconds%100)/10;
+    int ms_units = milliseconds%10;
+
+    byte record[DISPLAY_SIZE] = {
+        digits[ms_units], 
+        digits[ms_dozens], 
+        digits[ms_hundreds], 
+        digits[sec_units], 
+        digits[sec_dozens], 
+        digits[minutes]};
     writeDataToDisplay(record);
 }
 void writeDataToDisplay(byte b[DISPLAY_SIZE]){
@@ -197,11 +259,15 @@ inline void PBdigWL(byte b){
 
 void isrSaveTime(){
     unsigned long now = millis();
-    if(secondTime + timerDelay < now){
-        firstTime = secondTime;
+    if(!evenIrq && secondTime + timerDelay < now){
+        evenIrq = !evenIrq;
+        firstTime = now;
+        return;      
+    }
+    if(evenIrq && firstTime + timerDelay < now){
+        evenIrq = !evenIrq;
         secondTime = now;
-        interrupt = true;
-        even = !even;
+        return;     
     }
 }
 
