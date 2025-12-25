@@ -42,15 +42,14 @@ void setup(){
     if(digitalRead(SENSORPIN) == 1){
         //enableSensorIrq();
         showWiredEnabled();
-        delay(1000);
     }else{
         vw_set_rx_pin(RX_PIN);
         vw_setup(1200);
         vw_rx_start();
         radioEnabled = true;
         showRadioEnabled();
-        delay(1000);
     }
+    delay(showDelay);
 }
 
 void loop(){
