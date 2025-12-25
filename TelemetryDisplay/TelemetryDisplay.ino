@@ -8,20 +8,21 @@
 #define RX_PIN 3
 #define SENSORPIN 2
 unsigned long timerDelay = 1500;
-unsigned long showDelay = 700;
-void isrSaveTime();
+unsigned long showDelay = 600;
 volatile unsigned long secondTime = 0;
 volatile unsigned long firstTime = 0;
 volatile bool evenIrq = false;
-int sensorCode = 731;
+const int sensorCode = 731;
 uint32_t msgCounter = 0;
 bool radioEnabled = false;
 bool sensorIrqEnabled = false;
 // Значение для обозначения получения инициализирующего пакета от передатчика. Значение болше 10 минут в мс.
 // 9 мин 59с 999 мс = 60000*9=540000 + 59999 = 599999
+const unsigned long notInitialized = 700003;
 const unsigned long initialized = 700002;
 const unsigned long ready = 700001;
 const unsigned long noSignal = 700000;
+const unsigned long heartBeatInterval = 3000;
 
 struct message {
     int code;
@@ -72,6 +73,10 @@ void loop(){
             showReady();
             delay(showDelay);
             break;
+        case notInitialized:
+            showNotInitialized();
+            delay(showDelay);
+            break;
         default:
             timeToDisplay(result);
     }
@@ -79,38 +84,57 @@ void loop(){
 unsigned long radioChannel(){
     message msg;
     uint8_t buflen = sizeof(msg);
-    unsigned long result = 0;
-    static bool radioInitialized = false;
+    static unsigned long result = notInitialized;
     static unsigned long localFirstTime = 0;
+    static unsigned long remoteFirstTime = 0;
+    static unsigned long lastMessage = millis();
     if(vw_get_message((uint8_t*)&msg, &buflen)){
         if(msg.code == sensorCode){
-            if(msg.msgCounter == 0){
+            if(msg.msgCounter == 0 && msg.time == initialized){
                 // Инициализация датчика прошла успешно
                 // Показать сообщение о подключении к датчику. Вертикальные палочки заполняют экран.
-                radioInitialized = true;
-                return initialized;
+                result = initialized;
+                msgCounter = 0;
+                remoteFirstTime = 0;
+                evenIrq = false;
             }else{
-                if(msg.msgCounter == msgCounter + 1){
-                    if(evenIrq){
-                        result = firstTime - msg.time;
-
-                    }else{
-                        firstTime = msg.time;
-                        localFirstTime = millis();
+                if(msg.msgCounter > msgCounter){
+                    switch(msg.time){
+                        case noSignal:
+                            remoteFirstTime = 0;
+                            evenIrq = false;
+                            result = noSignal;
+                            break;
+                        case ready:
+                            result = ready;
+                            break;
+                        default:
+                            if(evenIrq){
+                                result = msg.time - remoteFirstTime;
+                            }else{
+                                remoteFirstTime = msg.time;
+                                localFirstTime = millis();
+                            }
+                            evenIrq = !evenIrq;
                     }
-                    evenIrq = !evenIrq;
                     msgCounter = msg.msgCounter;
                 }
             }
         }
-    }
-    if(radioInitialized == true){
+        lastMessage = millis();
+    }else{
         if(evenIrq){
-            return result;
-        }else{
-            return millis() - localFirstTime;
+            if(lastMessage + heartBeatInterval < millis()){
+                result = notInitialized;
+                msgCounter = 0;
+                remoteFirstTime = 0;
+                evenIrq = false;
+            }else{
+                result = millis() - localFirstTime;
+            }
         }
     }
+    return result;
 }
 unsigned long wiredChannel(){
     unsigned long result = 0;
@@ -181,6 +205,26 @@ void showNoSignal(){
     byte minus = 0b00000001; //-
     byte data[DISPLAY_SIZE] = {0,0,0,0,0,0};
     data[minus_position] = minus;
+    if(minus_position == 5){
+        up = false;
+    }
+    if(minus_position == 0){
+        up = true;
+    }
+    if(up){
+        
+        minus_position++;
+    }else{
+        minus_position--;
+    }
+    writeDataToDisplay(data);
+}
+void showNotInitialized(){
+    static short minus_position = 1;
+    static bool up = true;
+    byte bar = 0b00110110; //-
+    byte data[DISPLAY_SIZE] = {0,0,0,0,0,0};
+    data[minus_position] = bar;
     if(minus_position == 5){
         up = false;
     }
