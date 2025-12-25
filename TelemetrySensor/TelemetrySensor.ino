@@ -6,40 +6,106 @@
 #define TX_PIN 8
 unsigned long timerDelay = 1500;
 void isrSaveTime();
-volatile unsigned long timerTime = 0, prevTime = 0;
+volatile unsigned long irqTime = 0;
 volatile bool interrupt = false;
+unsigned int msgCounter = 0;
+const int sensorCode = 731;
+const unsigned long initialized = 700002;
+const unsigned long ready = 700001;
+const unsigned long noSignal = 700000;
+bool sensorIrqEnabled = false;
+unsigned long lastSend = 0;
+const unsigned long heartBeatInterval = 2000;
+
+struct message {
+    int code;
+    unsigned int msgCounter;
+    unsigned long time;
+};
 
 void setup(){
     vw_set_tx_pin(TX_PIN);
     vw_setup(1200);    
     pinMode(SENSORPIN, INPUT);
-    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, RISING);
-    char * msg = "SEM71111";
-    vw_send((uint8_t *)msg, strlen(msg));
-    vw_wait_tx();
-    delay(1000);
-    msg = "SEM000000";
-    vw_send((uint8_t *)msg, strlen(msg));
-    vw_wait_tx();
+    // Сообщение, обозначающее начало работы датчика и наличие подключения датчика.
+    message msg {
+        sensorCode,
+        msgCounter,
+        initialized
+    };
+    radioSendMessage(msg);
+    enableSensorIrq();
 }
 
 void loop(){
-    if(interrupt){
-        unsigned long result = timerTime - prevTime;
-        char msg[30];
-        sprintf(msg, "SEM%lu", result);
-        vw_send((uint8_t *)msg, sizeof(msg));
-        vw_wait_tx();
-        interrupt = false;
+    static unsigned long result = 0;
+    static unsigned long prevResult = 0;
+    static unsigned long lastNoSignal = 0;
+    // No signal from sensor. Signal = 0. No signal = 1;
+    int signal = !digitalRead(SENSORPIN);
+    digitalWrite(LASERINDICATOR, signal);
+    if(!signal && lastNoSignal == 0){
+        lastNoSignal = millis();
     }
-    digitalWrite(LASERINDICATOR, digitalRead(SENSORPIN));
+    if(signal){
+        lastNoSignal = 0;
+    }
+    if((!signal&& lastNoSignal + timerDelay < millis())){
+// При отсутствии сигнала в течение 1.5 секунд включаем возвращаем noSignal
+        disableSensorIrq();
+        sensorIrqEnabled = false;
+        delay(500);
+        result = noSignal;
+    }else{
+        if(!sensorIrqEnabled){
+            delay(1000);
+            enableSensorIrq();
+            sensorIrqEnabled = true;
+            result = ready;
+        }else{
+            if(irqTime == 0){
+                result = ready;
+            }else if(interrupt){
+                result = irqTime;
+                interrupt = false;
+            }
+        }
+    }
+    if(result != prevResult){
+        msgCounter++;
+        prevResult = result;
+    }
+    sendResultToDisplay(result);
 }
-
+void sendResultToDisplay(unsigned long result){
+    message msg {
+            sensorCode,
+            msgCounter,
+            result
+        };
+    radioSendMessage(msg);
+}
+void radioSendMessage(message msg){
+    for(unsigned short i = 0; i < 3; i++){
+        vw_send((uint8_t *)&msg, sizeof(msg));
+        vw_wait_tx();
+    }
+    lastSend = millis();
+}
 void isrSaveTime(){
     unsigned long now = millis();
-    if(timerTime + timerDelay < now){
-        prevTime = timerTime;
-        timerTime = now;
+    if(irqTime + timerDelay < now){
+        irqTime = now;
         interrupt = true;
     }
+}
+
+void enableSensorIrq(){
+    attachInterrupt(digitalPinToInterrupt(SENSORPIN), isrSaveTime, RISING);
+    sensorIrqEnabled = true;
+}
+
+void disableSensorIrq(){
+    detachInterrupt(digitalPinToInterrupt(SENSORPIN));
+    sensorIrqEnabled = false;
 }
