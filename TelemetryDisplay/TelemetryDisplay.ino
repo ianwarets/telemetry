@@ -34,7 +34,7 @@ void setup(){
     pinMode(DATA_PIN, OUTPUT);
     pinMode(CLOCK_PIN, OUTPUT);
     pinMode(LATCH_PIN, OUTPUT);
-    pinMode(SENSORPIN, INPUT_PULLUP);
+    pinMode(SENSORPIN, INPUT);
     
     // Проверка подключения датчика. Погда датчик подключен, 
     // то при отсутствии лазера на входе датчика на выходе будет 1.
