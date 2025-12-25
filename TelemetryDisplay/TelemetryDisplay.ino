@@ -63,19 +63,19 @@ void loop(){
     switch (result){
         case noSignal:
             showNoSignal();
-            delay(showDelay);
+            //delay(showDelay);
             break;
         case initialized:
             showInitialized();
-            delay(showDelay);
+            //delay(showDelay);
             break;
         case ready:
             showReady();
-            delay(showDelay);
+            //delay(showDelay);
             break;
         case notInitialized:
             showNotInitialized();
-            delay(showDelay);
+            //delay(showDelay);
             break;
         default:
             timeToDisplay(result);
@@ -97,42 +97,36 @@ unsigned long radioChannel(){
                 msgCounter = 0;
                 remoteFirstTime = 0;
                 evenIrq = false;
-            }else{
-                if(msg.msgCounter > msgCounter){
-                    switch(msg.time){
-                        case noSignal:
-                            remoteFirstTime = 0;
-                            evenIrq = false;
-                            result = noSignal;
-                            break;
-                        case ready:
-                            result = ready;
-                            break;
-                        default:
-                            if(evenIrq){
-                                result = msg.time - remoteFirstTime;
-                            }else{
-                                remoteFirstTime = msg.time;
-                                localFirstTime = millis();
-                            }
-                            evenIrq = !evenIrq;
-                    }
-                    msgCounter = msg.msgCounter;
+            }else if(msg.msgCounter > msgCounter){
+                switch(msg.time){
+                    case noSignal:
+                        remoteFirstTime = 0;
+                        evenIrq = false;
+                        result = noSignal;
+                        break;
+                    case ready:
+                        result = ready;
+                        break;
+                    default:
+                        if(evenIrq){
+                            result = msg.time - remoteFirstTime;
+                        }else{
+                            remoteFirstTime = msg.time;
+                            localFirstTime = millis();
+                        }
+                        evenIrq = !evenIrq;
                 }
+                msgCounter = msg.msgCounter;
             }
+            lastMessage = millis();
         }
-        lastMessage = millis();
-    }else{
-        if(evenIrq){
-            if(lastMessage + heartBeatInterval < millis()){
+    }else if(lastMessage + heartBeatInterval < millis()){
                 result = notInitialized;
                 msgCounter = 0;
                 remoteFirstTime = 0;
                 evenIrq = false;
-            }else{
-                result = millis() - localFirstTime;
-            }
-        }
+    }else if(evenIrq){
+        result = millis() - localFirstTime;
     }
     return result;
 }
@@ -200,42 +194,48 @@ void showInitialized(){
     writeDataToDisplay(data);
 }
 void showNoSignal(){
-    static short minus_position = 1;
+    static unsigned long lastCall = millis();
+    static short symbolPosition = 1;
     static bool up = true;
     byte minus = 0b00000001; //-
     byte data[DISPLAY_SIZE] = {0,0,0,0,0,0};
-    data[minus_position] = minus;
-    if(minus_position == 5){
+    data[symbolPosition] = minus;
+    if(symbolPosition == 5){
         up = false;
     }
-    if(minus_position == 0){
+    if(symbolPosition == 0){
         up = true;
     }
-    if(up){
-        
-        minus_position++;
-    }else{
-        minus_position--;
+    if(lastCall + showDelay < millis()){
+        if(up){    
+            symbolPosition++;
+        }else{
+            symbolPosition--;
+        }
+        lastCall = millis();
     }
     writeDataToDisplay(data);
 }
 void showNotInitialized(){
-    static short minus_position = 1;
+    static unsigned long lastCall = millis();
+    static short symbolPosition = 1;
     static bool up = true;
     byte bar = 0b00110110; //-
     byte data[DISPLAY_SIZE] = {0,0,0,0,0,0};
-    data[minus_position] = bar;
-    if(minus_position == 5){
+    data[symbolPosition] = bar;
+    if(symbolPosition == 5){
         up = false;
     }
-    if(minus_position == 0){
+    if(symbolPosition == 0){
         up = true;
     }
-    if(up){
-        
-        minus_position++;
-    }else{
-        minus_position--;
+    if(lastCall + showDelay < millis()){
+        if(up){
+            symbolPosition++;
+        }else{
+            symbolPosition--;
+        }
+        lastCall = millis();
     }
     writeDataToDisplay(data);
 }
