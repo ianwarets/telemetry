@@ -14,8 +14,8 @@ const unsigned long initialized = 700002;
 const unsigned long ready = 700001;
 const unsigned long noSignal = 700000;
 bool sensorIrqEnabled = false;
-unsigned long lastSend = 0;
-const unsigned long heartBeatInterval = 2000;
+const unsigned long heartBeatInterval = 1000;
+unsigned long lastRadioSent = 0;
 
 struct message {
     int code;
@@ -74,8 +74,10 @@ void loop(){
     if(result != prevResult){
         msgCounter++;
         prevResult = result;
+        sendResultToDisplay(result);
+    }else if(lastRadioSent + heartBeatInterval < millis()){
+        sendResultToDisplay(result);
     }
-    sendResultToDisplay(result);
 }
 void sendResultToDisplay(unsigned long result){
     message msg {
@@ -90,7 +92,7 @@ void radioSendMessage(message msg){
         vw_send((uint8_t *)&msg, sizeof(msg));
         vw_wait_tx();
     }
-    lastSend = millis();
+    lastRadioSent = millis();
 }
 void isrSaveTime(){
     unsigned long now = millis();
