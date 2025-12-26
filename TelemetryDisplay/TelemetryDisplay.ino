@@ -22,7 +22,7 @@ const unsigned long notInitialized = 700003;
 const unsigned long initialized = 700002;
 const unsigned long ready = 700001;
 const unsigned long noSignal = 700000;
-const unsigned long heartBeatInterval = 3000;
+const unsigned long heartBeatInterval = 5000;
 
 struct message {
     int code;
@@ -62,19 +62,15 @@ void loop(){
     switch (result){
         case noSignal:
             showNoSignal();
-            //delay(showDelay);
             break;
         case initialized:
             showInitialized();
-            //delay(showDelay);
             break;
         case ready:
             showReady();
-            //delay(showDelay);
             break;
         case notInitialized:
             showNotInitialized();
-            //delay(showDelay);
             break;
         default:
             timeToDisplay(result);
@@ -120,10 +116,12 @@ unsigned long radioChannel(){
             lastMessage = millis();
         }
     }else if(lastMessage + heartBeatInterval < millis()){
-                result = notInitialized;
-                msgCounter = 0;
-                remoteFirstTime = 0;
-                evenIrq = false;
+        result = notInitialized;
+        if(lastMessage + 2 * heartBeatInterval < millis){
+            msgCounter = 0;
+            remoteFirstTime = 0;
+            evenIrq = false;
+        }
     }else if(evenIrq){
         result = millis() - localFirstTime;
     }
