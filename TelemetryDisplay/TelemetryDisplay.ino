@@ -5,8 +5,8 @@
 #define LATCH_PIN 8
 #define DIGITS_COUNT 10
 #define DISPLAY_SIZE 6
-#define RX_PIN 3
-#define SENSORPIN 2
+#define RX_PIN 4
+#define SENSORPIN 3
 unsigned long timerDelay = 1500;
 unsigned long showDelay = 600;
 volatile unsigned long secondTime = 0;
@@ -138,7 +138,7 @@ unsigned long wiredChannel(){
     if(signal){
         lastNoSignal = 0;
     }
-    if((!signal&& lastNoSignal + timerDelay < millis())){
+    if((!signal && lastNoSignal + timerDelay < millis())){
 // При отсутствии сигнала в течение 1.5 секунд включаем возвращаем noSignal
         disableSensorIrq();
         sensorIrqEnabled = false;
