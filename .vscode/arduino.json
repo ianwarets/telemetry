@@ -1,0 +1,5 @@
+{
+    "configuration": "LTO=enable,sketchclock=16external,pinmapping=mhtiny,bod=4v3,resetpin=reset,burnmode=upgrade,bootentry=always,millis=enabled,neopixelport=porta",
+    "board": "ATTinyCore:avr:attinyx8micr",
+    "sketch": "TelemetryDisplay\\TelemetryDisplay.ino"
+}

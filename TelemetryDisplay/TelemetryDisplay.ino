@@ -117,7 +117,7 @@ unsigned long radioChannel(){
         }
     }else if(lastMessage + heartBeatInterval < millis()){
         result = notInitialized;
-        if(lastMessage + 2 * heartBeatInterval < millis){
+        if(lastMessage + 2 * heartBeatInterval < millis()){
             msgCounter = 0;
             remoteFirstTime = 0;
             evenIrq = false;

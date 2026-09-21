@@ -1,7 +1,7 @@
 #include <printf.h>
 #include <VirtualWire.h>
 
-#define SENSORPIN 2
+#define SENSORPIN 3
 #define LASERINDICATOR 6
 #define TX_PIN 8
 unsigned long timerDelay = 1500;
